@@ -1,0 +1,11 @@
+# Exclude host-mounted working project from Docker build context
+project/
+
+# VCS and editor artifacts
+.git/
+.gitignore
+.vscode/
+
+# Docs and repo metadata not needed for image build
+README.md
+LICENSE
