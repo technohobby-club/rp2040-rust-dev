@@ -1,4 +1,6 @@
 FROM debian:stable-slim
+# Rationale for Debian base vs official Rust image: see README section 
+# "Why this is not based on the official Rust Docker image".
 
 # Usage:
 # docker build \
