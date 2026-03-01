@@ -30,17 +30,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN rustup target add thumbv6m-none-eabi \
     && cargo install --locked elf2uf2-rs flip-link
 
-# Make Rust tools available in login shells (bash -l / bash -lc)
-RUN printf '%s\n' 'export PATH="/usr/local/cargo/bin:$PATH"' > /etc/profile.d/rust-path.sh
-
 # 3. Setup your non-root user
 ARG USER_UID=1000
 ARG USER_GID=1000
 RUN groupadd --gid $USER_GID rp2040-rust-dev && \
-    useradd --uid $USER_UID --gid $USER_GID -m -s /bin/bash rp2040-rust-dev
+    useradd --uid $USER_UID --gid $USER_GID -m -s /bin/bash rp2040-rust-dev && \
+    mkdir -p /home/rp2040-rust-dev/.cargo && \
+    chown -R rp2040-rust-dev:rp2040-rust-dev /home/rp2040-rust-dev/.cargo
 
 # 4. Use home directory
 WORKDIR /home/rp2040-rust-dev
+ENV CARGO_HOME=/home/rp2040-rust-dev/.cargo
 ENV PATH=/usr/local/cargo/bin:/home/rp2040-rust-dev/.cargo/bin:$PATH
 
 # 5. Switch to non-root
