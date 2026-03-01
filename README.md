@@ -6,15 +6,16 @@ Development container for building Rust firmware for the RP2040 Waveshare Zero b
 
 - [Purpose](#purpose)
 - [Why Docker is required](#why-docker-is-required)
-- [Why this is not based on the official Rust Docker image](#why-this-is-not-based-on-the-official-rust-docker-image)
+- [Base image and RP2040 additions](#base-image-and-rp2040-additions)
 - [Build the image](#build-the-image)
   - [Windows (PowerShell) equivalent](#windows-powershell-equivalent)
+- [Validate image](#validate-image)
 - [Run with a bind mount](#run-with-a-bind-mount)
 - [Why the volume mount is necessary](#why-the-volume-mount-is-necessary)
 
 ## Purpose
 
-This project provides a reproducible development environment for RP2040 firmware work, including Rust toolchain setup and `elf2uf2-rs` for generating `.uf2` images used by the board.
+This project provides a reproducible development environment for RP2040 firmware work, including embedded target support and `elf2uf2-rs` for generating `.uf2` images used by the board.
 
 ## Why Docker is required
 
@@ -24,15 +25,16 @@ Using Docker keeps the toolchain, system libraries, and build dependencies consi
 - Avoids "works on my machine" issues from mismatched package versions.
 - Makes onboarding easier: build image, run container, start building firmware.
 
-## Why this is not based on the official Rust Docker image
+## Base image and RP2040 additions
 
-This image is intentionally built from `debian:stable-slim` so we fully control the base OS packages needed for embedded RP2040 development.
+This image is based on the official `rust:slim` Docker image and adds the RP2040-specific dependencies needed for embedded development.
 
-- The environment needs Debian packages such as `libudev-dev`, `pkg-config`, and build tools in known versions.
-- We create a non-root user with host-matching UID/GID for correct file ownership on bind mounts.
-- Rust is installed via `rustup` in-container, so the Rust toolchain version and targets (`thumbv6m-none-eabi`) are explicit in this repo.
+- Debian packages: `libudev-dev`, `pkg-config`, `build-essential`, and common CLI tools.
+- Embedded target: `thumbv6m-none-eabi`.
+- Rust tools: `elf2uf2-rs` and `flip-link`.
+- Non-root user with host-matching UID/GID for correct file ownership on bind mounts.
 
-An official Rust base image can work, but this project prioritizes explicit, reproducible setup tailored to this RP2040 workflow.
+This keeps the image close to upstream Rust while still providing a reproducible RP2040 workflow.
 
 ## Build the image
 
@@ -54,14 +56,37 @@ docker build `
 
 Note: Windows commands are provided as reference and have not been tested in this project.
 
+## Validate image
+
+Run this smoke test to verify Rust, the embedded target, and RP2040 helper tools are available:
+
+```bash
+docker run --rm rp2040-rust-dev:latest bash -c '
+rustc --version &&
+rustup target list --installed | grep -q "thumbv6m-none-eabi" &&
+elf2uf2-rs --help >/dev/null &&
+flip-link --help >/dev/null &&
+echo "OK: image is ready for RP2040 builds"
+'
+```
+
+Notes:
+
+- `flip-link --help` prints a short informational message to stdout; this is expected.
+- This check uses `bash -c` (not `bash -lc`) to avoid login-shell `PATH` differences.
+
 ## Run with a bind mount
 
 ```bash
+mkdir -p project && chown "$(id -u)":"$(id -g)" project
+
 docker run -it --rm \
 	-v "$(pwd)/project":/home/rp2040-rust-dev/project \
 	-w /home/rp2040-rust-dev/project \
 	rp2040-rust-dev:latest
 ```
+
+If `project/` does not exist, Docker can create it as `root:root` on Linux when using `-v`, which causes host-side ownership surprises.
 
 ## Why the volume mount is necessary
 
