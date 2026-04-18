@@ -12,6 +12,7 @@ Development container for building Rust firmware for the RP2040 Waveshare Zero b
 - [Validate image](#validate-image)
 - [Run with a bind mount](#run-with-a-bind-mount)
 - [Why the volume mount is necessary](#why-the-volume-mount-is-necessary)
+- [Example usage](#example-usage)
 
 ## Purpose
 
@@ -97,3 +98,38 @@ The bind mount (`-v "$(pwd)/project":/home/rp2040-rust-dev/project`) shares the 
 - You can then copy/drag-and-drop the `.uf2` to a connected Waveshare Zero board in BOOTSEL mode.
 
 Without the mount, artifacts stay inside the container filesystem and are lost when the container is removed (`--rm`).
+
+## Example usage
+
+To try out building a real project with this development container, you can build an example from the `rp-hal-boards` repository. Since the container includes `git`, you do not even need it installed on your host machine.
+
+1. Start the container:
+
+   ```bash
+   make run
+   ```
+
+2. Inside the container, use the included `git` to clone the repository:
+
+   ```bash
+   git clone https://github.com/rp-rs/rp-hal-boards.git
+   ```
+
+3. Navigate to the cloned repository:
+
+   ```bash
+   cd rp-hal-boards
+   ```
+
+4. You can follow the specific instructions in the [Waveshare RP2040 Zero board README](https://github.com/rp-rs/rp-hal-boards/tree/main/boards/waveshare-rp2040-zero). For instance, to compile the NeoPixel rainbow example:
+
+   ```bash
+   cargo build --release --example waveshare_rp2040_zero_neopixel_rainbow
+   ```
+
+5. Generate the firmware `.uf2` file:
+   ```bash
+   elf2uf2-rs target/thumbv6m-none-eabi/release/examples/waveshare_rp2040_zero_neopixel_rainbow
+   ```
+
+The generated `.uf2` file will be created alongside the compiled binary in `target/thumbv6m-none-eabi/release/examples/`. Thanks to the volume mount, it will be immediately accessible on your host machine to drag and drop onto your board.
